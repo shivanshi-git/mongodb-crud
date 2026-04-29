@@ -15,6 +15,9 @@ const ngrok = require('@ngrok/ngrok');
     console.log(`\nCopy the URL above and paste it into GitHub with your webhook path!`);
     console.log(`Example: ${listener.url()}/github-webhook/`);
     
+    // Keep the process running so the tunnel stays open!
+    process.stdin.resume();
+    
   } catch (err) {
     console.error('Error:', err);
   }
