@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MongoDB Relationships — Presentation</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0 }
+  body { font-family: system-ui, sans-serif; background: #0f0f1a; color: #fff; min-height: 100vh }
+
+  /* TITLE SLIDE */
+  .slide { min-height: 100vh; padding: 3rem 4rem; display: flex; flex-direction: column; justify-content: center; border-bottom: 1px solid #222 }
+  .slide-num { font-size: 12px; color: #555; letter-spacing: 0.1em; margin-bottom: 1rem; text-transform: uppercase }
+  h1 { font-size: 3rem; font-weight: 700; line-height: 1.1; margin-bottom: 1rem }
+  h2 { font-size: 1.8rem; font-weight: 600; margin-bottom: 1.5rem }
+  .subtitle { font-size: 1.1rem; color: #888; margin-bottom: 2rem }
+  .accent { color: #818cf8 }
+  .green { color: #34d399 }
+  .yellow { color: #fbbf24 }
+  .pink { color: #f472b6 }
+
+  /* CONCEPT CARDS */
+  .concepts { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 900px }
+  .concept { background: #1a1a2e; border-radius: 12px; padding: 1.5rem; border: 1px solid #2a2a4a }
+  .concept-icon { font-size: 2rem; margin-bottom: 0.75rem }
+  .concept h3 { font-size: 1.1rem; margin-bottom: 0.5rem }
+  .concept p { font-size: 0.9rem; color: #888; line-height: 1.6 }
+  .tag { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-bottom: 8px }
+  .tag.blue { background: #1e3a5f; color: #60a5fa }
+  .tag.green { background: #14412d; color: #34d399 }
+
+  /* RELATIONSHIP DIAGRAM */
+  .diagram { display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; margin: 1.5rem 0 }
+  .node { background: #1a1a2e; border-radius: 10px; padding: 1rem 1.5rem; border: 2px solid #2a2a4a; min-width: 160px }
+  .node.author-node { border-color: #4f46e5 }
+  .node.book-node   { border-color: #0d9488 }
+  .node.genre-node  { border-color: #b45309 }
+  .node-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #555; margin-bottom: 4px }
+  .node-title { font-size: 1rem; font-weight: 600 }
+  .node-sub { font-size: 12px; color: #666; margin-top: 4px }
+  .arrow { font-size: 1.5rem; color: #444; display: flex; align-items: center; gap: 6px; flex-direction: column }
+  .arrow span { font-size: 10px; color: #555; text-align: center; max-width: 80px }
+
+  /* DATA TABLE */
+  .data-section { margin: 1.5rem 0 }
+  .data-section h3 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.1em; color: #555; margin-bottom: 1rem }
+  table { width: 100%; border-collapse: collapse; background: #1a1a2e; border-radius: 10px; overflow: hidden }
+  th { background: #12122a; padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #555 }
+  td { padding: 10px 14px; border-bottom: 1px solid #1f1f35; font-size: 13px; vertical-align: middle }
+  tr:last-child td { border-bottom: none }
+  tr:hover td { background: #1f1f35 }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; margin: 2px; font-weight: 500 }
+  .b-blue   { background: #1e3a5f; color: #60a5fa }
+  .b-green  { background: #14412d; color: #34d399 }
+  .b-purple { background: #2d1b5a; color: #a78bfa }
+  .b-amber  { background: #451a03; color: #fbbf24 }
+  .b-pink   { background: #4a0d2e; color: #f472b6 }
+
+  /* CODE BLOCK */
+  .code { background: #0d0d1a; border: 1px solid #2a2a4a; border-radius: 10px; padding: 1.5rem; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.8; overflow-x: auto; margin: 1rem 0 }
+  .c-comment { color: #4a4a6a }
+  .c-key     { color: #60a5fa }
+  .c-val     { color: #34d399 }
+  .c-ref     { color: #f472b6 }
+  .c-op      { color: #fbbf24 }
+  .c-kw      { color: #a78bfa }
+
+  /* SUMMARY STATS */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 1.5rem 0 }
+  .stat { background: #1a1a2e; border-radius: 10px; padding: 1rem; text-align: center; border: 1px solid #2a2a4a }
+  .stat-num { font-size: 2rem; font-weight: 700; color: #818cf8 }
+  .stat-label { font-size: 12px; color: #555; margin-top: 4px }
+
+  /* QUERY DEMO */
+  .query-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem }
+  .query-box { background: #1a1a2e; border-radius: 10px; padding: 1.25rem; border: 1px solid #2a2a4a }
+  .query-box h4 { font-size: 13px; color: #818cf8; margin-bottom: 8px }
+  .query-box p { font-size: 12px; color: #666; margin-bottom: 10px; line-height: 1.5 }
+
+  /* NAV */
+  .nav { position: fixed; top: 1rem; right: 1rem; display: flex; gap: 6px; z-index: 100 }
+  .nav button { background: #1a1a2e; border: 1px solid #2a2a4a; color: #888; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px }
+  .nav button:hover { background: #2a2a4a; color: #fff }
+
+  .highlight-box { background: #1a1a2e; border-left: 4px solid #818cf8; padding: 1rem 1.5rem; border-radius: 0 10px 10px 0; margin: 1rem 0 }
+  .highlight-box p { font-size: 14px; color: #aaa; line-height: 1.7 }
+  .highlight-box strong { color: #fff }
+
+  @media(max-width: 700px) {
+    h1 { font-size: 2rem }
+    .concepts, .query-grid, .stats { grid-template-columns: 1fr }
+    .slide { padding: 2rem 1.5rem }
+  }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <button onclick="window.open('http://localhost:3000')">▶ Open Live Demo</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 1 — TITLE                                    -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-num">Slide 01 / 05 · MongoDB CRUD Practical</div>
+  <h1>MongoDB<br><span class="accent">Relationships</span></h1>
+  <p class="subtitle">One-to-Many &amp; Many-to-Many · Node.js + Mongoose · Library System</p>
+
+  <div class="concepts">
+    <div class="concept">
+      <div class="concept-icon">📗</div>
+      <div class="tag blue">One-to-Many</div>
+      <h3>Author → Books</h3>
+      <p>One author writes many books. Each book stores a single <code style="color:#818cf8">author_id</code> reference pointing back to the author.</p>
+    </div>
+    <div class="concept">
+      <div class="concept-icon">🏷️</div>
+      <div class="tag green">Many-to-Many</div>
+      <h3>Books ↔ Genres</h3>
+      <p>A book can belong to many genres. A genre can tag many books. MongoDB stores an array of <code style="color:#34d399">genre_ids[]</code> inside each book.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 2 — DATA RECORDS                             -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-num">Slide 02 / 05 · Sample Records in the Database</div>
+  <h2>Our <span class="accent">Library Database</span></h2>
+
+  <div class="stats" id="stats">
+    <div class="stat"><div class="stat-num" id="s-authors">5</div><div class="stat-label">Authors</div></div>
+    <div class="stat"><div class="stat-num" id="s-books">13</div><div class="stat-label">Books</div></div>
+    <div class="stat"><div class="stat-num" id="s-genres">7</div><div class="stat-label">Genres</div></div>
+    <div class="stat"><div class="stat-num accent">2</div><div class="stat-label">Relationship types</div></div>
+  </div>
+
+  <div class="data-section">
+    <h3>Authors collection</h3>
+    <table>
+      <thead><tr><th>_id (ObjectId)</th><th>name</th><th>country</th><th>books written</th></tr></thead>
+      <tbody id="author-table">
+        <tr><td class="c-ref" style="font-family:monospace;font-size:11px">ObjectId("64a0...001")</td><td>J.R.R. Tolkien</td><td>United Kingdom</td><td><span class="badge b-blue">4 books</span></td></tr>
+        <tr><td class="c-ref" style="font-family:monospace;font-size:11px">ObjectId("64a0...002")</td><td>Frank Herbert</td><td>United States</td><td><span class="badge b-blue">2 books</span></td></tr>
+        <tr><td class="c-ref" style="font-family:monospace;font-size:11px">ObjectId("64a0...003")</td><td>J.K. Rowling</td><td>United Kingdom</td><td><span class="badge b-blue">3 books</span></td></tr>
+        <tr><td class="c-ref" style="font-family:monospace;font-size:11px">ObjectId("64a0...004")</td><td>George Orwell</td><td>United Kingdom</td><td><span class="badge b-blue">2 books</span></td></tr>
+        <tr><td class="c-ref" style="font-family:monospace;font-size:11px">ObjectId("64a0...005")</td><td>Agatha Christie</td><td>United Kingdom</td><td><span class="badge b-blue">2 books</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="data-section">
+    <h3>Books collection (first 6 shown)</h3>
+    <table>
+      <thead><tr><th>title</th><th>year</th><th>author_id →</th><th>genre_ids[] →</th></tr></thead>
+      <tbody id="book-table">
+        <tr><td>The Hobbit</td><td>1937</td><td><span class="badge b-purple">Tolkien</span></td><td><span class="badge b-green">Fantasy</span><span class="badge b-amber">Adventure</span></td></tr>
+        <tr><td>Fellowship of the Ring</td><td>1954</td><td><span class="badge b-purple">Tolkien</span></td><td><span class="badge b-green">Fantasy</span><span class="badge b-amber">Adventure</span><span class="badge b-pink">Classic</span></td></tr>
+        <tr><td>Dune</td><td>1965</td><td><span class="badge b-purple">Herbert</span></td><td><span class="badge b-blue">Sci-Fi</span><span class="badge b-amber">Adventure</span><span class="badge b-pink">Classic</span></td></tr>
+        <tr><td>Harry Potter – Stone</td><td>1997</td><td><span class="badge b-purple">Rowling</span></td><td><span class="badge b-green">Fantasy</span><span class="badge b-pink">Magic</span><span class="badge b-amber">Adventure</span></td></tr>
+        <tr><td>1984</td><td>1949</td><td><span class="badge b-purple">Orwell</span></td><td><span class="badge b-blue">Sci-Fi</span><span class="badge b-pink">Classic</span><span class="badge b-amber">Dystopia</span></td></tr>
+        <tr><td>Murder on the Orient Express</td><td>1934</td><td><span class="badge b-purple">Christie</span></td><td><span class="badge b-blue">Mystery</span><span class="badge b-pink">Classic</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 3 — DOCUMENT STRUCTURE                       -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-num">Slide 03 / 05 · How MongoDB Stores It</div>
+  <h2>Document <span class="accent">Structure</span></h2>
+
+  <div class="highlight-box">
+    <p>Unlike SQL, MongoDB stores relationships as <strong>references (ObjectIds)</strong> inside the document itself. No separate join table is needed for many-to-many.</p>
+  </div>
+
+  <div class="code">
+<span class="c-comment">// ── AUTHOR document (authors collection) ───────────</span>
+{
+  <span class="c-key">_id</span>:      <span class="c-ref">ObjectId("64a0000000000000001")</span>,
+  <span class="c-key">name</span>:    <span class="c-val">"J.R.R. Tolkien"</span>,
+  <span class="c-key">country</span>: <span class="c-val">"United Kingdom"</span>
+}
+
+<span class="c-comment">// ── BOOK document (books collection) ───────────────</span>
+{
+  <span class="c-key">_id</span>:   <span class="c-ref">ObjectId("64b0000000000000001")</span>,
+  <span class="c-key">title</span>: <span class="c-val">"The Hobbit"</span>,
+  <span class="c-key">year</span>:  <span class="c-val">1937</span>,
+
+  <span class="c-comment">// ONE-TO-MANY: single reference to author</span>
+  <span class="c-key">author</span>: <span class="c-ref">ObjectId("64a0000000000000001")</span>,  <span class="c-comment">← points to Tolkien</span>
+
+  <span class="c-comment">// MANY-TO-MANY: array of genre references</span>
+  <span class="c-key">genres</span>: [
+    <span class="c-ref">ObjectId("64c0000000000000001")</span>,  <span class="c-comment">← Fantasy</span>
+    <span class="c-ref">ObjectId("64c0000000000000003")</span>   <span class="c-comment">← Adventure</span>
+  ]
+}
+
+<span class="c-comment">// ── GENRE document (genres collection) ─────────────</span>
+{
+  <span class="c-key">_id</span>:  <span class="c-ref">ObjectId("64c0000000000000001")</span>,
+  <span class="c-key">name</span>: <span class="c-val">"Fantasy"</span>
+}
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 4 — CRUD OPERATIONS                          -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-num">Slide 04 / 05 · CRUD Operations with Relationships</div>
+  <h2>CRUD <span class="accent">Queries</span></h2>
+
+  <div class="query-grid">
+    <div class="query-box">
+      <h4>📥 CREATE — Add a book</h4>
+      <p>Stores the author's ObjectId and an array of genre ObjectIds</p>
+      <div class="code" style="font-size:11px;padding:1rem">
+<span class="c-kw">await</span> Book.<span class="c-op">create</span>({
+  title:  <span class="c-val">"Dune"</span>,
+  year:   <span class="c-val">1965</span>,
+  author: herbertId,   <span class="c-comment">← 1 ref</span>
+  genres: [scifiId, adventureId]
+})                     <span class="c-comment">← array of refs</span>
+      </div>
+    </div>
+    <div class="query-box">
+      <h4>📖 READ — Get books with author name</h4>
+      <p>.populate() replaces ObjectIds with actual documents (like SQL JOIN)</p>
+      <div class="code" style="font-size:11px;padding:1rem">
+<span class="c-kw">await</span> Book.<span class="c-op">find</span>()
+  .<span class="c-op">populate</span>(<span class="c-val">'author'</span>, <span class="c-val">'name'</span>)
+  .<span class="c-op">populate</span>(<span class="c-val">'genres'</span>, <span class="c-val">'name'</span>)
+<span class="c-comment">// Returns full author + genre docs</span>
+      </div>
+    </div>
+    <div class="query-box">
+      <h4>✏️ UPDATE — Add a new genre to a book</h4>
+      <p>$addToSet safely adds to the genres array without duplicates</p>
+      <div class="code" style="font-size:11px;padding:1rem">
+<span class="c-kw">await</span> Book.<span class="c-op">updateOne</span>(
+  { _id: bookId },
+  { <span class="c-op">$addToSet</span>: {
+    genres: newGenreId
+  }}
+)
+      </div>
+    </div>
+    <div class="query-box">
+      <h4>🗑️ DELETE — Remove genre from ALL books</h4>
+      <p>$pull removes the genre from every book's array at once</p>
+      <div class="code" style="font-size:11px;padding:1rem">
+<span class="c-kw">await</span> Book.<span class="c-op">updateMany</span>(
+  {},
+  { <span class="c-op">$pull</span>: {
+    genres: deletedGenreId
+  }}
+)
+      </div>
+    </div>
+  </div>
+
+  <div class="highlight-box" style="margin-top:1.5rem">
+    <p>One-to-many cascade delete: <strong>Book.deleteMany({ author: authorId })</strong> — removes all books when an author is deleted.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 5 — LIVE DEMO                                -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-num">Slide 05 / 05 · Live Demo</div>
+  <h2>Live <span class="accent">Demo</span></h2>
+  <p class="subtitle" style="margin-bottom:2rem">Running on localhost:3000 — Node.js + Express + MongoDB + Mongoose</p>
+
+  <div class="concepts">
+    <div class="concept">
+      <div class="concept-icon">1️⃣</div>
+      <h3>Step 1</h3>
+      <p style="margin-bottom:8px">Run the seed script to fill the database:</p>
+      <div class="code" style="font-size:13px;padding:0.75rem">node seed.js</div>
+    </div>
+    <div class="concept">
+      <div class="concept-icon">2️⃣</div>
+      <h3>Step 2</h3>
+      <p style="margin-bottom:8px">Start the server:</p>
+      <div class="code" style="font-size:13px;padding:0.75rem">node server.js</div>
+    </div>
+    <div class="concept">
+      <div class="concept-icon">3️⃣</div>
+      <h3>Step 3</h3>
+      <p style="margin-bottom:8px">Open the browser UI:</p>
+      <div class="code" style="font-size:13px;padding:0.75rem">http://localhost:3000</div>
+    </div>
+    <div class="concept">
+      <div class="concept-icon">4️⃣</div>
+      <h3>Step 4</h3>
+      <p style="margin-bottom:8px">Check raw data in MongoDB shell:</p>
+      <div class="code" style="font-size:12px;padding:0.75rem">mongosh library_db<br>db.books.find().pretty()</div>
+    </div>
+  </div>
+
+  <div style="margin-top:2rem;text-align:center">
+    <button onclick="window.open('http://localhost:3000')" style="background:#6366f1;color:#fff;border:none;padding:14px 32px;border-radius:8px;font-size:16px;cursor:pointer;font-weight:600">
+      ▶ Open Live Demo →
+    </button>
+  </div>
+</div>
+
+<script>
+// Try to load live data from the running server
+async function loadLiveData() {
+  try {
+    const [authors, books, genres] = await Promise.all([
+      fetch('http://localhost:3000/api/authors').then(r=>r.json()),
+      fetch('http://localhost:3000/api/books').then(r=>r.json()),
+      fetch('http://localhost:3000/api/genres').then(r=>r.json()),
+    ]);
+    document.getElementById('s-authors').textContent = authors.length;
+    document.getElementById('s-books').textContent = books.length;
+    document.getElementById('s-genres').textContent = genres.length;
+
+    // Update author table with real data
+    const at = document.getElementById('author-table');
+    at.innerHTML = authors.map(a => {
+      const n = books.filter(b=>b.author?._id===a._id).length;
+      return `<tr>
+        <td style="font-family:monospace;font-size:11px;color:#f472b6">ObjectId("${a._id.substring(0,16)}...")</td>
+        <td>${a.name}</td><td>${a.country}</td>
+        <td><span class="badge b-blue">${n} books</span></td>
+      </tr>`;
+    }).join('');
+
+    // Update book table
+    const bt = document.getElementById('book-table');
+    bt.innerHTML = books.slice(0,6).map(b => `<tr>
+      <td>${b.title}</td><td>${b.year}</td>
+      <td><span class="badge b-purple">${b.author?.name||'—'}</span></td>
+      <td>${b.genres?.map(g=>`<span class="badge b-green">${g.name}</span>`).join('')||'—'}</td>
+    </tr>`).join('');
+  } catch(e) {
+    // Static data already shown — server not running yet, that's fine
+  }
+}
+loadLiveData();
+</script>
+</body>
+</html>

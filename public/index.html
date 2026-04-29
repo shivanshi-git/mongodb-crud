@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MongoDB Library — CRUD Demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0 }
+  body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #1a1a1a; font-size: 14px }
+  .header { background: #1a1a2e; color: #fff; padding: 1rem 2rem; display: flex; align-items: center; gap: 12px }
+  .header h1 { font-size: 18px; font-weight: 600 }
+  .header span { font-size: 12px; background: #16213e; padding: 3px 10px; border-radius: 20px; color: #a0c4ff }
+  .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem }
+  .card { background: #fff; border-radius: 10px; padding: 1.25rem; border: 1px solid #e5e5e5 }
+  .card h2 { font-size: 14px; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px }
+  .tag { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 500 }
+  .tag.one { background: #dbeafe; color: #1d4ed8 }
+  .tag.many { background: #dcfce7; color: #15803d }
+  .form-row { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap }
+  input, select { padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; flex: 1; min-width: 100px; background: #fafafa }
+  input:focus, select:focus { outline: none; border-color: #6366f1; background: #fff }
+  button { padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500 }
+  .btn-add { background: #6366f1; color: #fff }
+  .btn-add:hover { background: #4f46e5 }
+  .btn-del { background: #fee2e2; color: #dc2626 }
+  .btn-del:hover { background: #fecaca }
+  .btn-sm { padding: 3px 10px; font-size: 12px }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #888; padding: 6px 8px; border-bottom: 1px solid #eee }
+  td { padding: 8px; border-bottom: 1px solid #f0f0f0; vertical-align: middle }
+  tr:last-child td { border-bottom: none }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; margin: 1px }
+  .badge-author { background: #dbeafe; color: #1d4ed8 }
+  .badge-genre { background: #dcfce7; color: #15803d }
+  .empty { text-align: center; color: #aaa; padding: 1.5rem; font-size: 13px }
+  .status { padding: 8px 12px; border-radius: 6px; font-size: 12px; margin-bottom: 10px; font-family: monospace }
+  .status.ok { background: #dcfce7; color: #15803d }
+  .status.err { background: #fee2e2; color: #dc2626 }
+  .genre-checkboxes { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; background: #fafafa; border: 1px solid #ddd; border-radius: 6px; min-width: 160px }
+  .genre-check { display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer; padding: 2px 6px; border-radius: 20px; border: 1px solid #ddd; background: #fff }
+  .genre-check.checked { background: #dcfce7; border-color: #86efac; color: #15803d }
+  .books-card { grid-column: 1 / -1 }
+  .schema { background: #1e1e2e; color: #cdd6f4; border-radius: 8px; padding: 1rem; font-family: monospace; font-size: 12px; line-height: 1.7; margin-top: 8px; overflow-x: auto }
+  .schema .key { color: #89b4fa }
+  .schema .val { color: #a6e3a1 }
+  .schema .ref { color: #f38ba8 }
+  .schema .comment { color: #6c7086; font-style: italic }
+  .rel-badge { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 10px; font-family: monospace; margin-left: 6px }
+  .rel-1m { background: #dbeafe; color: #1d4ed8 }
+  .rel-mm { background: #dcfce7; color: #15803d }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📚 MongoDB Library</h1>
+  <span>one-to-many</span>
+  <span>many-to-many</span>
+  <span id="conn-status" style="background:#dc2626">connecting...</span>
+</div>
+
+<div class="container">
+  <div id="status-msg"></div>
+
+  <div class="grid" style="margin-bottom:1rem">
+    <!-- AUTHORS -->
+    <div class="card">
+      <h2>Authors <span class="tag one">one side</span></h2>
+      <div class="form-row">
+        <input id="a-name" placeholder="Name">
+        <input id="a-country" placeholder="Country" style="max-width:110px">
+        <button class="btn-add" onclick="addAuthor()">+ Add</button>
+      </div>
+      <table>
+        <thead><tr><th>Name</th><th>Country</th><th>Books</th><th></th></tr></thead>
+        <tbody id="author-list"></tbody>
+      </table>
+    </div>
+
+    <!-- GENRES -->
+    <div class="card">
+      <h2>Genres <span class="tag many">many-to-many pivot</span></h2>
+      <div class="form-row">
+        <input id="g-name" placeholder="Genre name">
+        <button class="btn-add" onclick="addGenre()">+ Add</button>
+      </div>
+      <table>
+        <thead><tr><th>Genre</th><th>Books using it</th><th></th></tr></thead>
+        <tbody id="genre-list"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- BOOKS -->
+  <div class="card books-card" style="margin-bottom:1rem">
+    <h2>Books
+      <span class="rel-badge rel-1m">author_id → Author</span>
+      <span class="rel-badge rel-mm">genre_ids[] ↔ Genre</span>
+    </h2>
+    <div class="form-row">
+      <input id="b-title" placeholder="Title" style="flex:2">
+      <input id="b-year" placeholder="Year" type="number" style="max-width:80px">
+      <select id="b-author" style="flex:1"><option value="">-- Author --</option></select>
+      <div id="genre-picker" class="genre-checkboxes"></div>
+      <button class="btn-add" onclick="addBook()">+ Add book</button>
+    </div>
+    <table>
+      <thead><tr><th>Title</th><th>Year</th><th>Author <span class="rel-badge rel-1m">1→M</span></th><th>Genres <span class="rel-badge rel-mm">M↔M</span></th><th></th></tr></thead>
+      <tbody id="book-list"></tbody>
+    </table>
+  </div>
+
+  <!-- SCHEMA -->
+  <div class="card">
+    <h2>Live document shapes (what MongoDB stores)</h2>
+    <div class="schema" id="schema-preview">Loading...</div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:3000/api';
+
+// ── state ─────────────────────────────────────────────
+let authors = [], genres = [], books = [];
+let selectedGenres = new Set();
+
+// ── helpers ───────────────────────────────────────────
+function showStatus(msg, ok=true){
+  const el = document.getElementById('status-msg');
+  el.innerHTML = `<div class="status ${ok?'ok':'err'}">${msg}</div>`;
+  setTimeout(()=>el.innerHTML='', 3000);
+}
+
+async function api(method, path, body){
+  const res = await fetch(API+path, {
+    method,
+    headers: {'Content-Type':'application/json'},
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const data = await res.json();
+  if(!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+// ── fetch all ─────────────────────────────────────────
+async function loadAll(){
+  try {
+    [authors, genres, books] = await Promise.all([
+      api('GET','/authors'), api('GET','/genres'), api('GET','/books')
+    ]);
+    document.getElementById('conn-status').textContent = '✓ connected';
+    document.getElementById('conn-status').style.background = '#16a34a';
+    renderAll();
+  } catch(e){
+    showStatus('Cannot reach server — is it running? (node server.js)', false);
+  }
+}
+
+function renderAll(){ renderAuthors(); renderGenres(); renderBooks(); renderSchema(); renderPicker(); }
+
+// ── AUTHORS ───────────────────────────────────────────
+async function addAuthor(){
+  const name = document.getElementById('a-name').value.trim();
+  const country = document.getElementById('a-country').value.trim();
+  if(!name) return;
+  try {
+    await api('POST','/authors',{name, country});
+    document.getElementById('a-name').value='';
+    document.getElementById('a-country').value='';
+    showStatus(`db.authors.insertOne({ name:"${name}", country:"${country||'Unknown'}" })`);
+    await loadAll();
+  } catch(e){ showStatus(e.message, false); }
+}
+
+async function deleteAuthor(id){
+  const a = authors.find(x=>x._id===id);
+  const count = books.filter(b=>b.author?._id===id).length;
+  if(count && !confirm(`Delete "${a.name}"? Cascades to ${count} book(s).`)) return;
+  try {
+    const r = await api('DELETE',`/authors/${id}`);
+    showStatus('db.authors.deleteOne({_id}) + ' + r.message);
+    await loadAll();
+  } catch(e){ showStatus(e.message, false); }
+}
+
+function renderAuthors(){
+  const el = document.getElementById('author-list');
+  if(!authors.length){ el.innerHTML='<tr><td colspan="4" class="empty">No authors yet</td></tr>'; return; }
+  el.innerHTML = authors.map(a => {
+    const n = books.filter(b=>b.author?._id===a._id).length;
+    return `<tr>
+      <td><strong>${a.name}</strong></td>
+      <td style="color:#666">${a.country}</td>
+      <td><span class="badge badge-author">${n} book${n!==1?'s':''}</span></td>
+      <td><button class="btn-del btn-sm" onclick="deleteAuthor('${a._id}')">del</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── GENRES ────────────────────────────────────────────
+async function addGenre(){
+  const name = document.getElementById('g-name').value.trim();
+  if(!name) return;
+  try {
+    await api('POST','/genres',{name});
+    document.getElementById('g-name').value='';
+    showStatus(`db.genres.insertOne({ name:"${name}" })`);
+    await loadAll();
+  } catch(e){ showStatus(e.message, false); }
+}
+
+async function deleteGenre(id){
+  const g = genres.find(x=>x._id===id);
+  if(!confirm(`Delete genre "${g.name}"? Will be $pull-ed from all books.`)) return;
+  try {
+    const r = await api('DELETE',`/genres/${id}`);
+    showStatus('db.genres.deleteOne + db.books.updateMany $pull: ' + r.message);
+    await loadAll();
+  } catch(e){ showStatus(e.message, false); }
+}
+
+function renderGenres(){
+  const el = document.getElementById('genre-list');
+  if(!genres.length){ el.innerHTML='<tr><td colspan="3" class="empty">No genres yet</td></tr>'; return; }
+  el.innerHTML = genres.map(g => {
+    const n = books.filter(b=>b.genres?.some(x=>x._id===g._id)).length;
+    return `<tr>
+      <td><span class="badge badge-genre">${g.name}</span></td>
+      <td style="color:#666;font-size:12px">${n} book${n!==1?'s':''}</td>
+      <td><button class="btn-del btn-sm" onclick="deleteGenre('${g._id}')">del</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── BOOKS ─────────────────────────────────────────────
+function renderPicker(){
+  const el = document.getElementById('genre-picker');
+  const sel = document.getElementById('b-author');
+  sel.innerHTML = '<option value="">-- Author --</option>' +
+    authors.map(a=>`<option value="${a._id}">${a.name}</option>`).join('');
+  el.innerHTML = genres.map(g=>`
+    <label class="genre-check ${selectedGenres.has(g._id)?'checked':''}" onclick="toggleGenre('${g._id}',this)">
+      <input type="checkbox" style="display:none" ${selectedGenres.has(g._id)?'checked':''}>${g.name}
+    </label>`).join('');
+}
+
+function toggleGenre(id, el){
+  if(selectedGenres.has(id)){ selectedGenres.delete(id); el.classList.remove('checked'); }
+  else { selectedGenres.add(id); el.classList.add('checked'); }
+}
+
+async function addBook(){
+  const title = document.getElementById('b-title').value.trim();
+  const year  = parseInt(document.getElementById('b-year').value) || new Date().getFullYear();
+  const author = document.getElementById('b-author').value;
+  if(!title || !author) return alert('Title and author are required');
+  try {
+    await api('POST','/books',{ title, year, author, genres: [...selectedGenres] });
+    document.getElementById('b-title').value='';
+    document.getElementById('b-year').value='';
+    selectedGenres.clear();
+    showStatus(`db.books.insertOne({ title:"${title}", author_id:ObjectId, genre_ids:[...] })`);
+    await loadAll();
+  } catch(e){ showStatus(e.message, false); }
+}
+
+async function deleteBook(id){
+  try {
+    await api('DELETE',`/books/${id}`);
+    showStatus('db.books.deleteOne({_id})');
+    await loadAll();
+  } catch(e){ showStatus(e.message, false); }
+}
+
+function renderBooks(){
+  const el = document.getElementById('book-list');
+  if(!books.length){ el.innerHTML='<tr><td colspan="5" class="empty">No books yet</td></tr>'; return; }
+  el.innerHTML = books.map(b => `<tr>
+    <td><strong>${b.title}</strong></td>
+    <td style="color:#888">${b.year}</td>
+    <td><span class="badge badge-author">${b.author?.name||'—'}</span></td>
+    <td>${b.genres?.map(g=>`<span class="badge badge-genre">${g.name}</span>`).join('')||'<span style="color:#ccc">none</span>'}</td>
+    <td><button class="btn-del btn-sm" onclick="deleteBook('${b._id}')">del</button></td>
+  </tr>`).join('');
+}
+
+// ── SCHEMA PREVIEW ────────────────────────────────────
+function renderSchema(){
+  const b = books[0];
+  const a = authors[0];
+  let html = '';
+  if(a){
+    html += `<div style="margin-bottom:12px">
+<span style="color:#cba6f7">// Author document (authors collection)</span>
+{
+  <span class="key">_id</span>: <span class="ref">ObjectId("${a._id}")</span>,
+  <span class="key">name</span>: <span class="val">"${a.name}"</span>,
+  <span class="key">country</span>: <span class="val">"${a.country}"</span>
+}</div>`;
+  }
+  if(b){
+    const genreIds = b.genres?.map(g=>`<span class="ref">ObjectId("${g._id}")</span>`).join(', ') || '';
+    html += `<div>
+<span style="color:#cba6f7">// Book document (books collection)</span>
+{
+  <span class="key">_id</span>: <span class="ref">ObjectId("${b._id}")</span>,
+  <span class="key">title</span>: <span class="val">"${b.title}"</span>,
+  <span class="key">year</span>: <span class="val">${b.year}</span>,
+
+  <span class="comment">// ONE-TO-MANY ref → authors._id</span>
+  <span class="key">author</span>: <span class="ref">ObjectId("${b.author?._id||'...'}")</span>,
+
+  <span class="comment">// MANY-TO-MANY array of refs → genres._id</span>
+  <span class="key">genres</span>: [ ${genreIds} ]
+}</div>`;
+  }
+  if(!html) html = '<span style="color:#6c7086">Add some authors, genres and books to see live document shapes here...</span>';
+  document.getElementById('schema-preview').innerHTML = html;
+}
+
+// ── INIT ──────────────────────────────────────────────
+loadAll();
+setInterval(loadAll, 5000); // auto-refresh every 5s
+
+// ── WEBSOCKET / JENKINS ───────────────────────────────
+const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const ws = new WebSocket(`${protocol}//${window.location.host}`);
+
+ws.onopen = () => {
+  console.log('Connected to WebSocket server');
+};
+
+ws.onmessage = (event) => {
+  try {
+    const msg = JSON.parse(event.data);
+    if (msg.type === 'jenkins') {
+      console.log('Jenkins event:', msg.data);
+      // Attempt to extract status from Jenkins webhook format, otherwise fallback
+      const status = msg.data.build ? msg.data.build.status : 'Webhook received';
+      const name = msg.data.name || 'Jenkins Build';
+      const isSuccess = status === 'SUCCESS' || status === 'Webhook received';
+      
+      showStatus(`[Jenkins] ${name}: ${status}`, isSuccess);
+    }
+  } catch(e) {
+    console.error('Error parsing WebSocket message', e);
+  }
+};
+</script>
+</body>
+</html>
