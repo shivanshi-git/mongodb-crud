@@ -96,3 +96,5 @@ AGGREGATE (raw pipeline):
 
 
 i wanna check JENKINS
+
+AGAIN JENKINSSSSS CHECKKKKKKK
