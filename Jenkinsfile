@@ -42,9 +42,9 @@ pipeline {
                 }
             } | ConvertTo-Json -Compress
             
-            Invoke-RestMethod -Uri "https://rethink-reputably-query.ngrok-free.dev/api/jenkins-webhook" `
+            Invoke-RestMethod -Uri "http://localhost:3000/api/jenkins-webhook" `
                               -Method POST `
-                              -Headers @{"Content-Type"="application/json"; "ngrok-skip-browser-warning"="true"} `
+                              -Headers @{"Content-Type"="application/json"} `
                               -Body \$body
             """
         }

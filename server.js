@@ -58,17 +58,6 @@ app.post('/api/jenkins-webhook', (req, res) => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, async () => {
   console.log(`\n  Server running at http://localhost:${PORT}`);
-  
-  try {
-    const ngrok = require('@ngrok/ngrok');
-    console.log(`  Starting ngrok tunnel...`);
-    const listener = await ngrok.forward({ addr: PORT, authtoken: '3D2sF85vvakVhijwD9QLj9JQK1T_4YSh4jNajbj49xukmq7JU' });
-    console.log(`\n  Ngrok tunnel established!`);
-    console.log(`  Use THIS URL for your Jenkins webhook: ${listener.url()}/api/jenkins-webhook`);
-  } catch (err) {
-    console.error('   Failed to start ngrok:', err.message);
-  }
-
   console.log(`\n  API endpoints:`);
   console.log(`   GET    /api/authors`);
   console.log(`   POST   /api/authors`);
