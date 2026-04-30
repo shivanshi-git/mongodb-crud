@@ -1,9 +1,13 @@
 pipeline {
     agent any
 
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
     stages {
 
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
                 echo 'Checking out source code...'
                 checkout scm
@@ -17,24 +21,45 @@ pipeline {
             }
         }
 
-        stage('Test') {
+        stage('Run Tests') {
             steps {
                 echo 'Running tests...'
-                // Uncomment when tests exist
+                // Uncomment when you add tests
                 // bat 'npm test'
             }
         }
 
+        stage('Build Docker Image') {
+            steps {
+                echo 'Building Docker image...'
+                bat 'docker-compose build'
+            }
+        }
+
+        stage('Deploy Containers') {
+            steps {
+                echo 'Deploying containers...'
+                bat 'docker-compose up -d'
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                echo 'Checking running containers...'
+                bat 'docker ps'
+            }
+        }
     }
 
     post {
         always {
-            echo "Sending webhook notification to Node.js App via Ngrok..."
+            echo "Sending webhook notification to Node.js Dashboard..."
 
             powershell '''
             $body = @{
                 name = "$env:JOB_NAME"
                 build = @{
+                    number = "$env:BUILD_NUMBER"
                     status = "$env:BUILD_STATUS"
                 }
             } | ConvertTo-Json -Compress
